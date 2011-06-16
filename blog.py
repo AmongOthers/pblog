@@ -1,8 +1,10 @@
 #!/usr/bin/python2
 '''
+This script mainly intend for uploading local Html file to blog site using metaWeblog API.
 Usages:
-./blog.py list
 ./blog.py post post.[org|adoc|html]
+./blog.py list
+./blog.py delete post-id
 '''
 import sys
 import xmlrpclib
@@ -14,8 +16,6 @@ from subprocess import Popen, PIPE, STDOUT
 
 serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/metaweblog.aspx', 'ans42'
 usr, passwd = 'ans42', 'iambook11'
-# serviceUrl, appKey = 'http://blog.csdn.net/huafengxi/services/MetaBlogApi.aspx', 'huafengxi'
-# usr, passwd = 'huafengxi', 'iambook11'
 
 def read(path):
     try:
@@ -23,51 +23,64 @@ def read(path):
             return f.read()
     except IOError:
             return ''
-    
+
+def write(path, content):
+    with open(path, 'w') as f:
+        f.write(content)
+        
 def popen(cmd):
-    print cmd
     return Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT).communicate()[0]
 
-def chext(path, ext):
-    return re.sub(r'(\.[^/.]*)$', ext, path)
-
-def get_ext(name):
-    index = name.rfind('.')
-    if index == -1: return ""
-    return name[index+1:].lower()
-
-def mv(src, target):
-    return popen('mv %s %s'%(src, target))
-    
-def md5(str):
-    return hashlib.md5(str).hexdigest()
-
-def is_updated(path, md5):
-    return md5(read(path)) != read(md5)
-
-def mkfile(src, target, handler):
-    dep = target + '.dep'
-    if not is_updated(src, dep): return False
-    handler(src, target)
-    write(dep, md5(src))
-    return True
-
-def org2html(src, target):
-    output = popen('''emacs --batch --execute '(require `org)' --visit=%s --execute '(progn (setq org-export-headline-levels 2) (setq org-export-html-postamble "") (setq org-export-html-preamble "") (setq org-export-htmlize-output-type `css) (setq org-export-html-style "<link rel=\\"stylesheet\\" type=\\"text/css\\" href=\\"org.css\\">") (org-export-as-html-batch))' '''%(src))
-    mv(chext(src, '.html'), target)
-    return output
-
-def html2html(src, target):
-    return mv(src, target)
-
-def adoc2html(src, target):
-    return popen('asciidoc %s -o %s'%(src, target))
-    
 def to_html(path, target):
+    def mv(src, target):
+        return popen('mv %s %s'%(src, target))
+    def chext(path, ext):
+        return re.sub(r'(\.[^/.]*)$', ext, path)
+    def get_ext(name):
+        index = name.rfind('.')
+        if index == -1: return ""
+        return name[index+1:].lower()
+    def org2html(src, target):
+        cmd = """emacs --batch --execute '(require `org)' --visit=%s --execute
+'(progn (setq org-export-headline-levels 2)
+(setq org-export-html-postamble "") (setq org-export-html-preamble "")
+(setq org-export-htmlize-output-type `css)
+(setq org-export-html-style "<link rel=\\"stylesheet\\" type=\\"text/css\\" href=\\"org.css\\">")
+(org-export-as-html-batch))'"""
+        output = popen(cmd.replace('\n', ' ') % src)
+        mv(chext(src, '.html'), target)
+        return output
+    def html2html(src, target):
+        return mv(src, target)
+    def adoc2html(src, target):
+        return popen('asciidoc %s -o %s'%(src, target))
+
     handlers = dict(htm=html2html, html=html2html, adoc=adoc2html, asciidoc=adoc2html, org=org2html)
     f = handlers.get(get_ext(path))
     if not f: raise Exception('do not know how to make html from %s'%path)
     return f(path, target)
+
+def resolve_local_ref(content, upload):
+    'I would not to deal with uppercase tags'
+    def get_url(path, url_file):
+        print 'upload(%s)'%(repr(path))
+        return write(url_file, upload(path)['url'])
+    def upload_maybe(path):
+        return mkfile(path, path+'.url', get_url)
+    def new_img(m):
+        return '<img src="%s" %s/>'%(upload_maybe(m.group(1)), m.group(2))
+    return re.sub('<img\s+src\s*=\s*"(.*?)"(.*?)/>', new_img, content)
+
+def mkfile(src, target, handler):
+    def md5(str):
+        return hashlib.md5(str).hexdigest()
+    def is_updated(path, md5_file):
+        return md5(read(path)) != read(md5_file)
+    dep = target + '.dep'
+    if is_updated(src, dep):
+        handler(src, target)
+        write(dep, md5(read(src)))
+    return read(target)
 
 class MetaWeblog:
     '''works with www.cnblogs.com atleast'''
@@ -105,22 +118,30 @@ class MetaWeblog:
         return self.server.metaWeblog.newMediaObject(blogid, self.usr, self.passwd, dict(name=name, type=type, bits=content))
 
     def post(self, path):
+        def get_tagged_body(html, tag):
+            tag_re = '%s|%s'%(tag.lower(), tag.upper())
+            m = re.search('<(?:%s)>(.*?)</(?:%s)>'%(tag_re, tag_re), html, re.S)
+            return m and m.group(1)
+        def chext(path, ext):
+            return re.sub(r'(\.[^/.]*)$', ext, path)
         html = chext(path, '.html')
         print to_html(path, html)
         content = read(html)
-        m = re.search('<(?:title|TITLE)>(.*?)</(?:title|TITLE)>', content)
-        title = m and m.group(1) or 'Default Title'
-        description = content
-        # matched = filter(lambda p: p['title'] == title,  self.getRecentPosts(10))
-        # if matched:
-        #     return self.editPost(matched[0]['postid'], title, description)
-        # else:
-        #     return self.newPost(title, description)
+        title = get_tagged_body(content, 'title') or 'Default Title'
+        description = resolve_local_ref(get_tagged_body(content, 'body') or content, self.newMediaObject)
+        matched = filter(lambda p: p['title'] == title,  self.getRecentPosts(10))
+        if matched:
+            return self.editPost(matched[0]['postid'], title, description)
+        else:
+            return self.newPost(title, description, publish=False)
 
     def list(self, count=10):
         for p in self.getRecentPosts(count):
             print '%(postid)s\t%(title)s\n%(description)s'%p
-        
+
+    def delete(self, id):
+        return self.deletePost(id)
+    
     def __repr__(self):
         return 'MetaWeblog(%s, %s, %s)'%(repr(self.serviceUrl), repr(self.usr), repr(self.passwd))
     

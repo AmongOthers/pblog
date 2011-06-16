@@ -1,5 +1,5 @@
 blog = proxychains ./blog.py
-all: Readme.post
+all: blog.post
 list: 
 	$(blog) list
 %.post: %.org

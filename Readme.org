@@ -13,7 +13,7 @@ We deliver a Python script =blog.py= to upload local Html file to blog site usin
 To use this script, you need to configure it first, change the following two lines properly.
 #+BEGIN_SRC python
 serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/metaweblog.aspx', 'ans42'
-usr, passwd = 'ans42', 'iambook11'
+usr, passwd = 'ans42', 'xxxx'
 #+END_SRC
 
 * Usages
@@ -31,6 +31,8 @@ It will list recent =12= posts, you can omit the number, then it will list =10= 
 This will upload =your-blog.html= to your blog site as a new post, or update existing post if you have posted it before.
 =blog.py= will scan recent 10 posts, when it found a post whose title is the same as =your-blog.html=, 
 then it will think =your-blog.html= has been posted already, and update this post instead of create a new one.
+
+For convenience, you can post =org-mode= or =asciidoc= text file directly.
 
 + Delete a post:
 #+BEGIN_SRC sh
