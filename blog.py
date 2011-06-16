@@ -6,7 +6,8 @@ Usages:
 ./blog.py list
 ./blog.py delete post-id
 '''
-import sys
+import sys, os, os.path
+base_dir = os.path.dirname(os.path.abspath(__file__))
 import xmlrpclib
 import re
 import mimetypes
@@ -60,17 +61,6 @@ def to_html(path, target):
     if not f: raise Exception('do not know how to make html from %s'%path)
     return f(path, target)
 
-def resolve_local_ref(content, upload):
-    'I would not to deal with uppercase tags'
-    def get_url(path, url_file):
-        print 'upload(%s)'%(repr(path))
-        return write(url_file, upload(path)['url'])
-    def upload_maybe(path):
-        return mkfile(path, path+'.url', get_url)
-    def new_img(m):
-        return '<img src="%s" %s/>'%(upload_maybe(m.group(1)), m.group(2))
-    return re.sub('<img\s+src\s*=\s*"(.*?)"(.*?)/>', new_img, content)
-
 def mkfile(src, target, handler):
     def md5(str):
         return hashlib.md5(str).hexdigest()
@@ -81,6 +71,25 @@ def mkfile(src, target, handler):
         handler(src, target)
         write(dep, md5(read(src)))
     return read(target)
+
+def cached_call(f, src):
+    def mkdir(dir):
+        if not os.path.exists(dir): os.mkdir(dir)
+    cache_dir = os.path.join(base_dir, '.cache')
+    mkdir(cache_dir)
+    result = os.path.join(cache_dir, (src + '.' + f.func_name).replace('/', '!'))
+    def handler(src, target):
+        return write(target, f(src))
+    return mkfile(src, result, handler)
+    
+def resolve_local_ref(content, upload):
+    'I would not to deal with uppercase tags'
+    def url(path):
+        print 'upload(%s)'%(repr(path))
+        return upload(path)['url']
+    def new_img(m):
+        return '<img src="%s" %s/>'%(cached_call(url, m.group(1)), m.group(2))
+    return re.sub('<img\s+src\s*=\s*"(.*?)"(.*?)/>', new_img, content)
 
 class MetaWeblog:
     '''works with www.cnblogs.com atleast'''
