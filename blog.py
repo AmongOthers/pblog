@@ -117,8 +117,8 @@ class MetaWeblog:
         # else:
         #     return self.newPost(title, description)
 
-    def list(self):
-        for p in self.getRecentPosts(10):
+    def list(self, count=10):
+        for p in self.getRecentPosts(count):
             print '%(postid)s\t%(title)s\n%(description)s'%p
         
     def __repr__(self):

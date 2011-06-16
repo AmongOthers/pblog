@@ -1,116 +1,44 @@
-#+Title: Using Python+MetaWeblog to manage your blog 
-#+options: toc:nil H:2
+#+options: H:2
+* Motivation
+For the task of blogging, you can generate Html file locally, then using metaWeblog API to upload them to your blog hosting site.
+This workflow has following benefits:
++ There are many ways to generate Html documents, you can choose which you like. Especially, you can create clean and readable text file using markdown syntax.
++ You can easily backup and reuse the content of your blog.
++ You can use version control tool such as Git to track down the history.
 
-* Motivation and Technical Solution 
-** manage our blogs as plain text locally has some benefits:
-*** You can easily backup and reuse the content of your blog.
-*** You can use version control tool such as Git to track down the history.
-** markdown syntax is clean for quick document as plain text. org-mode is good for writting document using markdown syntax amony other things, the top 3 features attract me are:
-*** simple but powerful keybindings for editing document outlines, You can not only fold/unfold a tree, but also cut/copy/pase a subtree, promote/demote a subtree.
-*** powerful table editor with simple spreedsheet ability.
-*** include and execute =source code= by org-babel, so you can prepare some *date* and *graph* with little effort.
-** Once we generate Html version of blogs we can using MetaWeblog API to upload our blog to server. We will use Python for this task. There are actually two problems need address:
-*** Simplify the MetaWeblog API by hiding some global configurations, instead using
-*** Upload  mediaObject(such as Image/Video) and replace their references in Html.
+We deliver a Python script =blog.py= to upload local Html file to blog site using metaWeblog API.
 
-
-* The content of this document
-#+begin_src elisp
-(defun (ok abc) )
-#+end_src  
-This document assume you use Python regually, it is not a tutorial for Python. 
-#+begin_src dot :file blog-workflow.png :cmdline -Kdot -Tpng
-digraph G {
-rankdir=LR;
-subgraph{
-blog[label="blog site"];
-scm[label="Git Hosting site"];
-}
-subgraph cluster {
-label="emacs/org-mode";
-style=bold; 
-txt_file[label="text version document", shape=note];
-html_file[label="html version document", shape=note];
-txt_file->html_file;
-}
-txt_file->scm[label=Git]; html_file->blog[label="metaWeblog API"];
-}
+* configuration
+To use this script, you need to configure it first, change the following two lines properlly.
+#+begin_src python
+serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/metaweblog.aspx', 'ans42'
+usr, passwd = 'ans42', 'iambook11'
 #+end_src
 
-#+results:
-[[file:blog-workflow.png]]
+* Usages
+After configuration. Now you can:
++ list your recent posts:
+#+begin_src sh
+./blog.py list 12
+#+end_src
+It will list recent =12= posts, you can omit the number, then it will list =10= posts. 
 
-We will present how to wrap MetaWeblog API using =xmlrpclib= of Python, and how to solve the mediaObject reference in Html.
++ Upload or Update your post from local Html file:
+#+begin_src sh
+./blog.py post your-blog.html
+#+end_src
+This will upload =your-blog.html= to your blog site as a new post, or update existing post if you already post it before.
+=blog.py= will scan recent 10 posts, when it found a post whose title is the same as =your-blog.html=, 
+then it will think =your-blog.html= has been posted already, and update this post instead of create a new one.
 
-* Wrapper of MetaWeblog API
-** basic concept of MetaWeblog
-See RFC: http://www.xmlrpc.com/MetaWeblogApi for reference on MetaWeblog API.
-The most import 3 entry points are:
-#+begin_example
-metaWeblog.newPost (blogid, username, password, struct, publish) returns string
-metaWeblog.editPost (postid, username, password, struct, publish) returns true
-metaWeblog.getPost (postid, username, password) returns struct
-#+end_example
-The content of one blog are represented as =struct=.
-To understand MetaWeblog API you need to understand:
-+ one user on a site may have multiple blogs, so =newPost= accepts =blogid= as parameter.
-#+begin_src dot :file blog-structure.png :cmdline -Kdot -Tpng
-digraph G{
-site[label="one user on a site"];
-subgraph cluster_0{
-style=filled;color=lightgrey; 
-post1[label=<<B>Title</B><br/>Descriptions<br/>...>, shape=note];
-post2[label=<<B>Title</B><br/>Descriptions<br/>...>, shape=note];
-blog1[shape=folder]
-blog1->post1; blog1->post2;
-}
-subgraph cluster_1{
-style=filled;color=lightgrey; 
-post3[label=<<B>Title</B><br/>Descriptions<br/>...>, shape=note];
-post4[label=<<B>Title</B><br/>Descriptions<br/>...>, shape=note];
-blog2[shape=folder]
-blog2->post3; blog2->post4;
-}
-site->blog1; site->blog2;
-}
-#+end_src  
++ Delete a post:
+#+begin_src sh
+./blog.py del <post-id>
+#+end_src
 
-#+results:
-[[file:blog-structure.png]]
+* Technical Details
+There are actually two problems need address:
++ Access the metaWeblog API, =blog.py= use =xmlrpclib= for this task. 
++ Upload mediaObject(such as Image/Video) and replace their references in locally generated Html. 
+  =blog.py= will extract all local image references embed in Html file, then upload them to blog site, replace the local image references using the returned *URL*.
 
-+ you can upload the blog to site without publish to others, so comes the =publish= parameter to =newPost= and =editPost=, this =bool= value control whether the blog should be published.
-
-You may wonder how to list the blogs and posts of a user, here they comes:
-#+begin_example
-blogger.getUsersBlogs (appKey, username, password) return array of BlogInfo
-metaWeblog.getRecentPosts (blogid, username, password, numOfPosts) return array of Post
-#+end_example
-
-There are also methods to query/delete a post which won't be listed here. Final piece of the API is handle mediaObject in Html.
-#+begin_example
-MetaWeblog.newMediaObject (blogid, username, passwd, file) return URL of uploaded file
-#+end_example
-
-For these who are curisoty, following Python code demo how to wrap =getRecentPosts= and =newPost= methods and how to use them.
-#+BEGIN_SRC python  
-  class MetaWeblog:
-      '''works with www.cnblogs.com atleast'''
-      def __init__(self, serviceUrl, appKey, usr, passwd):
-          self.serviceUrl, self.appKey, self.usr, self.passwd = serviceUrl, appKey, usr, passwd
-          self.server = xmlrpclib.ServerProxy(self.serviceUrl)
-  
-      def getRecentPosts(self, count=5, blogid=''):
-          return self.server.MetaWeblog.getRecentPosts(blogid, self.usr, self.passwd, count)
-          
-      def newPost(self, title='Title used for test', description='this is a test post.', category='no category', publish=True, blogid='', **kw):
-          return self.server.MetaWeblog.newPost(blogid, self.usr, self.passwd, dict(kw, title=title, description=description, category=category), publish)
-  
-      .....
-      
-  serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/MetaWeblog.aspx', 'ans42'
-  usr, passwd = 'ans42', 'xxxxxx'
-  blog = MetaWeblog(serviceUrl, appKey, usr, passwd)
-  print blog.getRecentPosts() # list 5 recent posts
-  print blog.newPost('Title', 'content') # create a new post
-#+END_SRC
-You can access full source code in [[https://github.com/huafengxi/pblog]]
