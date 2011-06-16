@@ -5,7 +5,7 @@
 ** manage our blogs as plain text locally has some benefits:
 *** You can easily backup and reuse the content of your blog.
 *** You can use version control tool such as Git to track down the history.
-** _markdown_ syntax is clean for quick document as plain text. org-mode is good for writting document using _markdown_ syntax amony other things, the top 3 features attract me are:
+** markdown syntax is clean for quick document as plain text. org-mode is good for writting document using markdown syntax amony other things, the top 3 features attract me are:
 *** simple but powerful keybindings for editing document outlines, You can not only fold/unfold a tree, but also cut/copy/pase a subtree, promote/demote a subtree.
 *** powerful table editor with simple spreedsheet ability.
 *** include and execute =source code= by org-babel, so you can prepare some *date* and *graph* with little effort.
@@ -15,13 +15,37 @@
 
 
 * The content of this document
+#+begin_src elisp
+(defun (ok abc) )
+#+end_src  
 This document assume you use Python regually, it is not a tutorial for Python. 
+#+begin_src dot :file blog-workflow.png :cmdline -Kdot -Tpng
+digraph G {
+rankdir=LR;
+subgraph{
+blog[label="blog site"];
+scm[label="Git Hosting site"];
+}
+subgraph cluster {
+label="emacs/org-mode";
+style=bold; 
+txt_file[label="text version document", shape=note];
+html_file[label="html version document", shape=note];
+txt_file->html_file;
+}
+txt_file->scm[label=Git]; html_file->blog[label="metaWeblog API"];
+}
+#+end_src
+
+#+results:
+[[file:blog-workflow.png]]
+
 We will present how to wrap MetaWeblog API using =xmlrpclib= of Python, and how to solve the mediaObject reference in Html.
 
 * Wrapper of MetaWeblog API
 ** basic concept of MetaWeblog
 See RFC: http://www.xmlrpc.com/MetaWeblogApi for reference on MetaWeblog API.
-The most import 3 entry point is:
+The most import 3 entry points are:
 #+begin_example
 metaWeblog.newPost (blogid, username, password, struct, publish) returns string
 metaWeblog.editPost (postid, username, password, struct, publish) returns true
@@ -68,7 +92,7 @@ MetaWeblog.newMediaObject (blogid, username, passwd, file) return URL of uploade
 #+end_example
 
 For these who are curisoty, following Python code demo how to wrap =getRecentPosts= and =newPost= methods and how to use them.
-#+begin_src python  
+#+BEGIN_SRC python  
   class MetaWeblog:
       '''works with www.cnblogs.com atleast'''
       def __init__(self, serviceUrl, appKey, usr, passwd):
@@ -88,7 +112,5 @@ For these who are curisoty, following Python code demo how to wrap =getRecentPos
   blog = MetaWeblog(serviceUrl, appKey, usr, passwd)
   print blog.getRecentPosts() # list 5 recent posts
   print blog.newPost('Title', 'content') # create a new post
-#+end_src
-You can access full source code in http://github.com
-
-
+#+END_SRC
+You can access full source code in [[https://github.com/huafengxi/pblog]]
