@@ -33,9 +33,10 @@ txt_file->scm[label=Git]; html_file->blog[label="metaWeblog API"];
 [[file:blog-workflow.png]]
 
 We deliver a Python script =blog.py= to upload local Html file to blog site using metaWeblog API.
+You can access full source code in [[https://github.com/huafengxi/pblog]]
 
 * configuration
-Change the following two lines of =blog.py= properly.
+To use this script, you need to configure it first, change the following two lines of =config.py= properly.
 #+BEGIN_SRC python
 serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/metaweblog.aspx', 'ans42'
 usr, passwd = 'ans42', 'xxxxx'
@@ -137,7 +138,6 @@ For these who are curisoty, following Python code demo how to wrap =newPost= met
   blog = MetaWeblog(serviceUrl, appKey, usr, passwd)
   print blog.newPost('Title', 'content')
 #+END_SRC
-You can access full source code in [[https://github.com/huafengxi/pblog]]
 
 ** Solve the mediaObject reference in Html
-
+Todo

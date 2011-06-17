@@ -10,7 +10,7 @@ This workflow has following benefits:
 We deliver a Python script =blog.py= to upload local Html file to blog site using metaWeblog API.
 
 * configuration
-To use this script, you need to configure it first, change the following two lines properly.
+To use this script, you need to configure it first, change the following two lines of =config.py= properly.
 #+BEGIN_SRC python
 serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/metaweblog.aspx', 'ans42'
 usr, passwd = 'ans42', 'xxxx'
@@ -36,7 +36,7 @@ For convenience, you can post =org-mode= or =asciidoc= text file directly.
 
 + Delete a post:
 #+BEGIN_SRC sh
-./blog.py del <post-id>
+./blog.py delete <post-id>
 #+END_SRC
 
 * Technical Details

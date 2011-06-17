@@ -14,9 +14,7 @@ import mimetypes
 import os.path
 import hashlib
 from subprocess import Popen, PIPE, STDOUT
-
-serviceUrl, appKey = 'http://www.cnblogs.com/ans42/services/metaweblog.aspx', 'ans42'
-usr, passwd = 'ans42', 'iambook11'
+import config
 
 def read(path):
     try:
@@ -116,7 +114,6 @@ class MetaWeblog:
         return self.server.metaWeblog.newPost(blogid, self.usr, self.passwd, dict(kw, title=title, description=description, category=category), publish)
 
     def editPost(self, id, title='Title used for test', description='this is a test post.', category='no category', publish=True, **kw):
-        print id, title, kw, self.usr, self.passwd, publish, category
         return self.server.metaWeblog.editPost(id, self.usr, self.passwd, dict(kw, title=title, description=description, category=category), publish)
 
     def newMediaObject(self, path, name=None, blogid=''):
@@ -142,7 +139,7 @@ class MetaWeblog:
         if matched:
             return self.editPost(matched[0]['postid'], title, description)
         else:
-            return self.newPost(title, description, publish=False)
+            return self.newPost(title, description)
 
     def list(self, count=10):
         for p in self.getRecentPosts(count):
@@ -155,6 +152,6 @@ class MetaWeblog:
         return 'MetaWeblog(%s, %s, %s)'%(repr(self.serviceUrl), repr(self.usr), repr(self.passwd))
     
 if __name__ == '__main__':
-    blog = MetaWeblog(serviceUrl, appKey, usr, passwd)
+    blog = MetaWeblog(config.serviceUrl, config.appKey, config.usr, config.passwd)
     if len(sys.argv) < 2 or not hasattr(blog, sys.argv[1]): sys.stderr.write(__doc__)
     else: getattr(blog, sys.argv[1])(*sys.argv[2:])
