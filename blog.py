@@ -8,6 +8,7 @@ Usages:
 '''
 import sys, os, os.path
 base_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.extend([base_dir])
 import xmlrpclib
 import re
 import mimetypes
