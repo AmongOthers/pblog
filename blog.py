@@ -85,10 +85,16 @@ def resolve_local_ref(content, upload):
     'I would not to deal with uppercase tags'
     def url(path):
         print 'upload(%s)'%(repr(path))
-        return upload(path)['url']
+        return os.path.exists(path) and upload(path)['url'] or path
     def new_img(m):
         return '<img src="%s" %s/>'%(cached_call(url, m.group(1)), m.group(2))
-    return re.sub('<img\s+src\s*=\s*"(.*?)"(.*?)/>', new_img, content)
+    def new_archor(m):
+        return '<a href="%s" %s>'%(cached_call(url, m.group(1)), m.group(2))
+    def resolve_img_ref(content):
+        return re.sub('<img\s+src\s*=\s*"(.*?)"(.*?)/>', new_img, content)
+    def resolve_archor_ref(content):
+        return re.sub('<a\s+href\s*=\s*"(.*?)"(.*?)>', new_archor, content)
+    return resolve_archor_ref(resolve_img_ref(content))
 
 class MetaWeblog:
     '''works with www.cnblogs.com atleast'''
