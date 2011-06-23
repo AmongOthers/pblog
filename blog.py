@@ -81,15 +81,17 @@ def cached_call(f, src):
         return write(target, f(src))
     return mkfile(src, result, handler)
     
-def resolve_local_ref(content, upload):
+def resolve_local_ref(content, upload, base_dir):
     'I would not to deal with uppercase tags'
+    def realpath(path):
+        return path.startswith('/') and path or os.path.join(base_dir, path)
     def url(path):
         print 'upload(%s)'%(repr(path))
         return os.path.exists(path) and upload(path)['url'] or path
     def new_img(m):
-        return '<img src="%s" %s/>'%(cached_call(url, m.group(1)), m.group(2))
+        return '<img src="%s" %s/>'%(cached_call(url, realpath(m.group(1))), m.group(2))
     def new_archor(m):
-        return '<a href="%s" %s>'%(cached_call(url, m.group(1)), m.group(2))
+        return '<a href="%s" %s>'%(cached_call(url, realpath(m.group(1))), m.group(2))
     def resolve_img_ref(content):
         return re.sub('<img\s+src\s*=\s*"(.*?)"(.*?)/>', new_img, content)
     def resolve_archor_ref(content):
@@ -141,7 +143,7 @@ class MetaWeblog:
         print to_html(path, html)
         content = read(html)
         title = get_tagged_body(content, 'title') or 'Default Title'
-        description = resolve_local_ref(get_tagged_body(content, 'body') or content, self.newMediaObject)
+        description = resolve_local_ref(get_tagged_body(content, 'body') or content, self.newMediaObject, os.path.dirname(os.path.realpath(path)))
         matched = filter(lambda p: p['title'] == title,  self.getRecentPosts(10))
         if matched:
             return self.editPost(matched[0]['postid'], title, description)
