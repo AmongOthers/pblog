@@ -84,7 +84,7 @@ def cached_call(f, src):
 def resolve_local_ref(content, upload, base_dir):
     'I would not to deal with uppercase tags'
     def realpath(path):
-        return path.startswith('/') and path or os.path.join(base_dir, path)
+        return re.match('^([a-z]+:)?/', path) and path or os.path.join(base_dir, path)
     def url(path):
         print 'upload(%s)'%(repr(path))
         return os.path.exists(path) and upload(path)['url'] or path
