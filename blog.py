@@ -27,7 +27,7 @@ def read(path):
 def write(path, content):
     with open(path, 'w') as f:
         f.write(content)
-        
+
 def popen(cmd):
     return Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT).communicate()[0]
 
@@ -80,7 +80,7 @@ def cached_call(f, src):
     def handler(src, target):
         return write(target, f(src))
     return mkfile(src, result, handler)
-    
+
 def resolve_local_ref(content, upload, base_dir):
     'I would not to deal with uppercase tags'
     def realpath(path):
@@ -106,19 +106,19 @@ class MetaWeblog:
 
     def getUsersBlogs(self):
         return self.server.blogger.getUsersBlogs(self.appKey, self.usr, self.passwd)
-    
+
     def getCategories(self, blogid=''):
          return self.server.metaWeblog.getCategories(blogid, self.usr, self.passwd)
 
     def getRecentPosts(self, count=5, blogid=''):
         return self.server.metaWeblog.getRecentPosts(blogid, self.usr, self.passwd, count)
-        
+
     def deletePost(self, id):
         return self.server.blogger.deletePost(self.appKey, id, self.usr, self.passwd, False)
-    
+
     def getPost(self, id):
         return self.server.metaWeblog.getPost(id, self.usr, self.passwd)
-        
+
     def newPost(self, title='Title used for test', description='this is a test post.', category='no category', publish=True, blogid='', **kw):
         return self.server.metaWeblog.newPost(blogid, self.usr, self.passwd, dict(kw, title=title, description=description, category=category), publish)
 
@@ -152,14 +152,16 @@ class MetaWeblog:
 
     def list(self, count=10):
         for p in self.getRecentPosts(count):
-            print '%(postid)s\t%(title)s\n%(description)s'%p
+            #print '-' * 80
+            #print '#%(postid)s\t%(title)s\n%(description).80s'%p
+            print '%(postid)s\t%(title)s'%p
 
     def delete(self, id):
         return self.deletePost(id)
-    
+
     def __repr__(self):
         return 'MetaWeblog(%s, %s, %s)'%(repr(self.serviceUrl), repr(self.usr), repr(self.passwd))
-    
+
 if __name__ == '__main__':
     blog = MetaWeblog(config.serviceUrl, config.appKey, config.usr, config.passwd)
     if len(sys.argv) < 2 or not hasattr(blog, sys.argv[1]): sys.stderr.write(__doc__)
