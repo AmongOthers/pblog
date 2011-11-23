@@ -144,7 +144,7 @@ class MetaWeblog:
         content = read(html)
         title = get_tagged_body(content, 'title') or 'Default Title'
         description = resolve_local_ref(get_tagged_body(content, 'body') or content, self.newMediaObject, os.path.dirname(os.path.realpath(path)))
-        matched = filter(lambda p: p['title'] == title,  self.getRecentPosts(10))
+        matched = filter(lambda p: p['title'] == title.decode('utf-8'),  self.getRecentPosts(10))
         if matched:
             return self.editPost(matched[0]['postid'], title, description)
         else:
